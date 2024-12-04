@@ -1,10 +1,12 @@
 @startuml
 actor User
+actor "App A" as AppA
 participant "Service Catalog" as ServiceCatalog
 participant "API Catalog" as ApiCatalog
 participant "API Phantom Backend" as Backend
 participant "API Market" as ApiMarket
 database "MSSQL Database" as Database
+participant "App B (Target API)" as AppB
 
 User -> ServiceCatalog: Browse Services
 ServiceCatalog -> ApiCatalog: Fetch Available APIs for Selected Service
@@ -19,4 +21,17 @@ User -> Backend: View Intercepted APIs/Services
 Backend -> Database: Query Logged Data
 Database -> Backend: Return Intercepted Data
 Backend -> User: Display Logged Intercepted APIs/Services
+
+AppA -> Backend: Send API Request
+Backend -> Database: Check if API is Intercepted
+alt Intercepted
+    Backend -> Database: Log API Request and Response
+    Backend -> AppB: Forward Request
+    AppB -> Backend: Send Response
+    Backend -> Database: Log Response
+else Not Intercepted
+    Backend -> AppB: Forward Request Without Logging
+    AppB -> Backend: Send Response
+end
+Backend -> AppA: Return Response
 @enduml
