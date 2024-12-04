@@ -1,0 +1,22 @@
+@startuml
+actor User
+participant "Service Catalog" as ServiceCatalog
+participant "API Catalog" as ApiCatalog
+participant "API Phantom Backend" as Backend
+participant "API Market" as ApiMarket
+database "MSSQL Database" as Database
+
+User -> ServiceCatalog: Browse Services
+ServiceCatalog -> ApiCatalog: Fetch Available APIs for Selected Service
+ApiCatalog -> Backend: Display APIs for Onboarding
+User -> Backend: Request to Intercept API
+Backend -> ApiMarket: Validate API with Market
+ApiMarket -> Backend: Validation Success
+Backend -> Database: Log Intercepted Service and API at User Level
+Backend -> User: Confirm Interception Success
+
+User -> Backend: View Intercepted APIs/Services
+Backend -> Database: Query Logged Data
+Database -> Backend: Return Intercepted Data
+Backend -> User: Display Logged Intercepted APIs/Services
+@enduml
