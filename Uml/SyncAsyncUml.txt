@@ -1,0 +1,56 @@
+﻿@startuml
+actor Client
+participant "Service S1" as S1
+participant "SQL Database" as DB
+participant "Calculation Service" as Calc
+participant "Amazon S3" as S3
+
+== Client Submits New Task ==
+
+Client -> S1: HTTP POST /process (File details, parameters)
+activate Client
+activate S1
+
+S1 -> DB: INSERT INTO Tasks (Status='Pending', Params, S3Keys...)
+DB --> S1: Acknowledgment
+S1 --> Client: HTTP 202 Accepted (TrackingID)
+deactivate Client
+deactivate S1
+
+== Calculation Service Processes Task ==
+
+Calc -> DB: SELECT * FROM Tasks WHERE Status='Pending' LIMIT 1
+activate Calc
+DB --> Calc: Return one pending task (if any)
+Calc -> DB: UPDATE Task SET Status='In Progress' WHERE TaskID=...
+DB --> Calc: Acknowledgment
+
+Calc -> S3: GET Input File (if required)
+S3 --> Calc: File content
+
+Calc -> Calc: Process File (Long-running computation)
+
+Calc -> S3: PUT Result File (if large result)
+S3 --> Calc: Acknowledgment
+
+Calc -> DB: UPDATE Task SET Status='Completed', ResultS3Key=...
+DB --> Calc: Acknowledgment
+deactivate Calc
+
+== Client Checks Task Status ==
+
+Client -> S1: HTTP GET /status/{TrackingID}
+activate Client
+activate S1
+S1 -> DB: SELECT * FROM Tasks WHERE TaskID=...
+DB --> S1: Return Status and ResultS3Key
+S1 --> Client: JSON {Status: "Completed", ResultLocation: "s3://..."}
+deactivate S1
+deactivate Client
+
+== Client Retrieves Result (If Needed) ==
+
+Client -> S3: Download Result File (Using Presigned URL or direct access)
+S3 --> Client: Result File Content
+
+@enduml
