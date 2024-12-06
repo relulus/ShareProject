@@ -1,0 +1,25 @@
+Summary of the Simplified Architecture
+
+In the simplified scheme, the entire workflow revolves around a central SQL database for task management, Amazon S3 for large file storage, a single calculation service that processes tasks, and direct polling by both the calculation service and clients.
+
+Client Submission:
+A client begins by submitting a new processing request to the service (S1). The service records the task’s metadata and parameters into a SQL database with a status of "Pending," and returns a unique tracking ID to the client. If large input files are involved, the client (or service) ensures they are stored in Amazon S3 and referenced in the database entry.
+
+Centralized Status Tracking via SQL:
+The SQL database is the single source of truth for the task’s lifecycle. Each task’s status (e.g., "Pending," "In Progress," "Completed," "Failed") is updated here, along with any references to input and output files stored in S3.
+
+Calculation Service Polling:
+Instead of using a message queue or notification system, the calculation service regularly queries (polls) the SQL database for tasks with Status='Pending'. When it finds one, it updates the status to "In Progress," retrieves any necessary input data from S3, performs the computation, and uploads any large results back to S3.
+
+Task Completion Update:
+Upon finishing the computation, the calculation service updates the task’s status in the database to "Completed" and stores the S3 key of the resulting data. This ensures the final state and the location of the output is always known from the SQL database.
+
+Client Polling for Status:
+Clients periodically check the task’s status by making queries to S1, which in turn reads from the SQL database. Once the task is marked "Completed," the client can retrieve the result details. If large outputs are involved, the client uses the S3 reference provided to access the result file (possibly via a presigned URL).
+
+Key Simplifications Compared to the Original Design:
+
+No Redis Cache: All status and metadata are in the SQL database, eliminating the need for a separate caching layer.
+No Message Queue: The calculation service directly polls the SQL database for new tasks instead of listening on a queue.
+No Notification System: Clients poll the service for status updates, removing the complexity of asynchronous notifications.
+Unified Data Flow: Tasks, their statuses, and references to files in S3 are managed in one place (the SQL database), simplifying both the development and operational overhead.

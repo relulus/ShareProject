@@ -14,4 +14,8 @@
     <Compile Include="Uml\SyncAsyncUml.txt" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Text\" />
+  </ItemGroup>
+
 </Project>
